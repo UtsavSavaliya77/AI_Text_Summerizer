@@ -20,12 +20,26 @@ const app: Application = express();
 app.use(helmet());
 
 // 2. CORS CONFIGURATION
-app.use(cors({ 
-  origin: env.FRONTEND_URL, 
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://ai-text-summerizer-two.vercel.app",
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log("Blocked Origin:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // 3. BODY PARSING & LIMITS
 // Prevent payload-based DoS attacks by limiting size
