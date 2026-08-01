@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enums ---
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// --- Models ---
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  fullName      String
+  avatarUrl     String?
+  summaries     Summary[]
+  chatHistories ChatHistory[]
+  refreshTokens RefreshToken[]
+  notifications Notification[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  role          UserRole       @default(USER)
+  @@index([email])
+}
+
+model Summary {
+  id               String        @id @default(uuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title            String
+  originalContent  String        @db.Text
+  
+  // Summary Variants
+  summaryOneLine   String        @db.Text
+  summaryShort     String        @db.Text
+  summaryDetailed  String        @db.Text
+  summaryExecutive String        @db.Text
+  summaryBullet    String        @db.Text
+  
+  // AI Insights
+  keywords         String[]
+  mainTopic        String
+  readingTime      Int           // In minutes
+  wordCount        Int
+  charCount        Int
+  fileType         String        // e.g., 'text', 'pdf', 'docx'
+  
+  chatHistory      ChatHistory[]
+  createdAt        DateTime      @default(now())
+
+  @@index([userId])
+  @@index([title])
+}
+
+model ChatHistory {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  summaryId String
+  summary   Summary     @relation(fields: [summaryId], references: [id], onDelete: Cascade)
+  
+  role      MessageRole
+  message   String      @db.Text
+  
+  createdAt DateTime    @default(now())
+
+  @@index([userId])
+  @@index([summaryId])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  token     String   @unique
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      String   // e.g., 'system', 'summary_complete'
+  message   String
+  isRead    Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
